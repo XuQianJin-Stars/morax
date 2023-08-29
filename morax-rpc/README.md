@@ -2,7 +2,7 @@
 
 This module contains an Actor Model based network and RPC implementation derived by Spark's implementations, from its "spark-network-common" module, and "rpc" package under the "core" module.
 
-The baseline version is Spark 76a32d3df0fe8e857221662657936e5ae336d3ee. To simplify conveying licenses, all the commits after {placeholder} are made independently unless explict noted.
+The baseline version is Spark 76a32d3df0fe8e857221662657936e5ae336d3ee. To simplify conveying licenses, all the commits after 166eae8575daea55ef98c74aa6e528ee18bea215 are made independently unless explict noted.
 
 Besides porting the Scala RPC code into Java code, here are other significant modifications or notes:
 
