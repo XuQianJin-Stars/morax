@@ -43,7 +43,6 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.tisonkun.morax.exception.MoraxException;
 import org.tisonkun.morax.io.ByteBufferInputStream;
 import org.tisonkun.morax.rpc.AbortableRpcFuture;
 import org.tisonkun.morax.rpc.RpcAddress;
@@ -114,8 +113,12 @@ public class NettyRpcEnv extends RpcEnv {
 
     public NettyRpcEnv(RpcEnvConfig config) {
         this.host = config.advertiseAddress();
-        this.server = transportContext.createServer(config.bindAddress(), config.port());
-        dispatcher.registerRpcEndpoint(RpcEndpointVerifier.NAME, new RpcEndpointVerifier(this, dispatcher));
+        if (config.clientMode()) {
+            this.server = null;
+        } else {
+            this.server = transportContext.createServer(config.bindAddress(), config.port());
+            dispatcher.registerRpcEndpoint(RpcEndpointVerifier.NAME, new RpcEndpointVerifier(this, dispatcher));
+        }
     }
 
     @Override
@@ -176,7 +179,9 @@ public class NettyRpcEnv extends RpcEnv {
 
         timeoutScheduler.shutdownNow();
         dispatcher.stop();
-        server.close();
+        if (server != null) {
+            server.close();
+        }
         clientFactory.close();
         clientConnectionExecutor.shutdownNow();
         transportContext.close();
@@ -276,7 +281,7 @@ public class NettyRpcEnv extends RpcEnv {
         };
 
         try {
-            if (remoteAddr.equals(address())) {
+            if (Objects.equals(remoteAddr, address())) {
                 final CompletableFuture<Object> f = new CompletableFuture<>();
                 f.whenComplete((r, t) -> {
                     if (r != null) {
@@ -300,7 +305,7 @@ public class NettyRpcEnv extends RpcEnv {
             }
 
             final ScheduledFuture<?> timeoutCancelable = timeoutScheduler.schedule(
-                    () -> onFailure.accept(new MoraxException(
+                    () -> onFailure.accept(new TimeoutException(
                             "Cannot receive any reply from " + remoteAddr + " in " + timeout.duration())),
                     timeout.duration().toNanos(),
                     TimeUnit.NANOSECONDS);
