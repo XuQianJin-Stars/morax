@@ -63,7 +63,7 @@ public abstract sealed class MessageLoop permits DedicatedMessageLoop, SharedMes
         synchronized (lock) {
             if (!stopped) {
                 setActive(MessageLoop.POISON_PILL);
-                executorService.shutdownNow();
+                executorService.shutdown();
                 stopped = true;
             }
         }

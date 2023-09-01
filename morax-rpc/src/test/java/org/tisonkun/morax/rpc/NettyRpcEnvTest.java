@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -187,12 +188,13 @@ class NettyRpcEnvTest {
 
     @Test
     void testAskMessageAbort() {
+        final CountDownLatch aborted = new CountDownLatch(1);
         env.setupEndpoint("ask-abort", new TestRpcEndpoint(env) {
             @Override
             public boolean receiveAndReply(Object message, RpcCallContext context) {
                 if (message instanceof String m) {
                     try {
-                        Thread.sleep(10000);
+                        assertThat(aborted.await(10, TimeUnit.SECONDS)).isTrue();
                     } catch (InterruptedException e) {
                         throw ThrowableUtils.sneakyThrow(e);
                     }
@@ -222,6 +224,7 @@ class NettyRpcEnvTest {
                     })
                     .isExactlyInstanceOf(RuntimeException.class)
                     .hasMessage("TestAbort");
+            aborted.countDown();
         } finally {
             anotherEnv.shutdown();
             anotherEnv.awaitTermination();
