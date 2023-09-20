@@ -28,11 +28,12 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.tisonkun.morax.bookie.storage.EntryLogIds;
+import org.tisonkun.morax.bookie.storage.LedgerDirs;
 import org.tisonkun.morax.proto.bookie.DefaultEntry;
 import org.tisonkun.morax.proto.bookie.Entry;
 
 class LedgerTest {
-
     @Test
     void testAddAndGetEntry(@TempDir Path tempDir) throws IOException {
         final LedgerDirs ledgerDirs = new LedgerDirs(Collections.singletonList(tempDir.toFile()));
@@ -40,23 +41,26 @@ class LedgerTest {
         final long ledgerId = 1;
         final Executor writeExecutor = Executors.newSingleThreadExecutor(new DefaultThreadFactory("EntryLogWrite"));
         final Ledger ledger = new Ledger(ledgerId, tempDir, logIds, writeExecutor);
-
         final Entry[] entries = new Entry[] {
             new DefaultEntry(ledgerId, 1, 1, Unpooled.copiedBuffer("testAddAndGetEntry-1", StandardCharsets.UTF_8)),
             new DefaultEntry(ledgerId, 2, 2, Unpooled.copiedBuffer("testAddAndGetEntry-2", StandardCharsets.UTF_8)),
         };
 
-        ledger.addEntry(entries[0]);
-        ledger.addEntry(entries[1]);
+        for (Entry entry : entries) {
+            ledger.addEntry(entry);
+        }
         ledger.flush();
 
-        assertThat(ledger.readEntry(entries[1].getEntryId())).isEqualTo(entries[1]);
-        assertThat(ledger.readEntry(entries[0].getEntryId())).isEqualTo(entries[0]);
-        assertThat(ledger.readEntry(entries[1].getEntryId())).isEqualTo(entries[1]);
+        for (int i = 0; i < entries.length; i++) {
+            final int idx = entries.length - 1 - i;
+            final Entry actual = ledger.readEntry(entries[idx].getEntryId());
+            assertThat(actual).isEqualTo(entries[idx]);
+        }
 
-        for (int i = 0; i < 10; i++) {
-            final int idx = ((new Random().nextInt() % 2) + 2) % 2;
-            assertThat(ledger.readEntry(entries[idx].getEntryId())).isEqualTo(entries[idx]);
+        for (int i = 0; i < 100; i++) {
+            final int idx = Math.floorMod(new Random().nextInt(), entries.length);
+            final Entry actual = ledger.readEntry(entries[idx].getEntryId());
+            assertThat(actual).isEqualTo(entries[idx]);
         }
     }
 }

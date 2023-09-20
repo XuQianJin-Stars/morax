@@ -25,6 +25,11 @@ import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import lombok.extern.slf4j.Slf4j;
+import org.tisonkun.morax.bookie.storage.EntryLogIds;
+import org.tisonkun.morax.bookie.storage.EntryLogReader;
+import org.tisonkun.morax.bookie.storage.EntryLogWriter;
+import org.tisonkun.morax.bookie.storage.EntryPosIndices;
+import org.tisonkun.morax.bookie.storage.StorageEvent;
 import org.tisonkun.morax.proto.bookie.Entry;
 import org.tisonkun.morax.proto.bookie.EntryLocation;
 import org.tisonkun.morax.proto.exception.ExceptionUtils;
@@ -59,7 +64,7 @@ public class Ledger {
             log.atInfo().addKeyValue("newLogId", logId).log("event={}", StorageEvent.LOG_ROLL.toString());
         }
         final int logId = entryLogWriter.logId();
-        final long offset = entryLogWriter.writeDelimited(entry.toBytes());
+        final long offset = entryLogWriter.writeDelimitedEntry(entry.toBytes());
         posIndices.addPosition(ledgerId, entry.getEntryId(), logId, offset);
     }
 
@@ -69,7 +74,7 @@ public class Ledger {
             return null;
         }
 
-        final int logId = location.getLogId();
+        final int logId = location.logId();
         final EntryLogReader entryLogReader;
         try {
             entryLogReader = entryLogReaderCache.get(logId, () -> {
@@ -78,8 +83,8 @@ public class Ledger {
             });
         } catch (ExecutionException e) {
             final Throwable t = ExceptionUtils.stripException(e, ExecutionException.class);
-            if (t instanceof IOException) {
-                throw (IOException) t;
+            if (t instanceof IOException ioe) {
+                throw ioe;
             } else {
                 final String message = exMsg("Error loading reader in cache")
                         .kv("logId", logId)
@@ -96,7 +101,7 @@ public class Ledger {
                     exMsg("Cached reader already closed").kv("logId", logId).toString());
         }
 
-        final ByteBuf entry = entryLogReader.readEntryAt(location.getPosition());
+        final ByteBuf entry = entryLogReader.readEntryAt(location.position());
         return Entry.fromBytes(entry);
     }
 

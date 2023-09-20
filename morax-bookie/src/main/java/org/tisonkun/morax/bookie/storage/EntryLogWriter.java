@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.tisonkun.morax.bookie;
+package org.tisonkun.morax.bookie.storage;
 
 import static org.tisonkun.morax.proto.exception.ExceptionMessageBuilder.exMsg;
 import io.netty.buffer.ByteBuf;
@@ -70,7 +70,7 @@ public class EntryLogWriter implements AutoCloseable {
     }
 
     /**
-     * The current offset within the log at which the next call to {@link #writeDelimited} will start writing.
+     * The current offset within the log at which the next call to {@link #writeDelimitedEntry} will start writing.
      */
     public long position() {
         synchronized (bufferLock) {
@@ -86,13 +86,13 @@ public class EntryLogWriter implements AutoCloseable {
      *
      * @return the offset of the buffer within the file.
      */
-    public long writeDelimited(ByteBuf buf) throws IOException {
+    public long writeDelimitedEntry(ByteBuf bytes) throws IOException {
         synchronized (bufferLock) {
-            if (byteBuf.maxWritableBytes() < serializedSize(buf)) {
+            if (byteBuf.maxWritableBytes() < serializedSize(bytes)) {
                 flushBuffer();
             }
 
-            final int readable = buf.readableBytes();
+            final int readable = bytes.readableBytes();
             final long beforePosition = position();
             final long bufferPosition = beforePosition + Integer.BYTES;
             if (bufferPosition < 0) {
@@ -104,7 +104,7 @@ public class EntryLogWriter implements AutoCloseable {
                         .toString());
             }
             byteBuf.writeInt(readable);
-            byteBuf.writeBytes(buf);
+            byteBuf.writeBytes(bytes);
             return bufferPosition;
         }
     }

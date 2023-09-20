@@ -17,6 +17,7 @@
 package org.tisonkun.morax.proto.bookie;
 
 import io.netty.buffer.ByteBuf;
+import org.tisonkun.morax.proto.io.BufferUtils;
 
 public interface Entry {
     /**
@@ -41,13 +42,29 @@ public interface Entry {
      */
     ByteBuf getPayload();
 
+    /**
+     * Serialize this entry to bytes.
+     */
     ByteBuf toBytes();
+
+    /**
+     * @return {@link EntryProto} that is logically identical to this entry.
+     */
+    EntryProto toEntryProto();
 
     static Entry fromBytes(ByteBuf entry) {
         final ByteBuf payload = entry.duplicate();
         final long ledgerId = payload.readLong();
         final long entryId = payload.readLong();
         final long lastConfirmed = payload.readLong();
+        return new DefaultEntry(ledgerId, entryId, lastConfirmed, payload);
+    }
+
+    static Entry fromProtos(EntryProto entryProto) {
+        final long ledgerId = entryProto.getLedgerId();
+        final long entryId = entryProto.getEntryId();
+        final long lastConfirmed = entryProto.getLastConfirmed();
+        final ByteBuf payload = BufferUtils.byteStringToByteBuf(entryProto.getPayload());
         return new DefaultEntry(ledgerId, entryId, lastConfirmed, payload);
     }
 }

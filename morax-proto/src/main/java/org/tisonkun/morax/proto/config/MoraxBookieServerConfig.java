@@ -16,4 +16,17 @@
 
 package org.tisonkun.morax.proto.config;
 
-public class MoraxConfig {}
+import java.io.File;
+import java.util.List;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
+
+@Data
+@Builder
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
+public class MoraxBookieServerConfig {
+    private final int port;
+    private final List<File> ledgerDirs;
+}

@@ -16,10 +16,12 @@
 
 package org.tisonkun.morax.proto.bookie;
 
+import com.google.protobuf.ByteString;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import java.nio.charset.StandardCharsets;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * Default implementation of {@link Entry} based on in-memory {@link ByteBuf}.
@@ -31,6 +33,7 @@ public class DefaultEntry implements Entry {
     private final long lastConfirmed;
     private final ByteBuf payload;
 
+    @EqualsAndHashCode.Exclude
     private transient volatile ByteBuf cachedBytes;
 
     @Override
@@ -53,7 +56,22 @@ public class DefaultEntry implements Entry {
         return payload;
     }
 
+    @Override
     public ByteBuf toBytes() {
+        return cachedBytes();
+    }
+
+    @Override
+    public EntryProto toEntryProto() {
+        return EntryProto.newBuilder()
+                .setLedgerId(ledgerId)
+                .setEntryId(entryId)
+                .setLastConfirmed(lastConfirmed)
+                .setPayload(ByteString.copyFrom(payload.nioBuffer()))
+                .build();
+    }
+
+    private ByteBuf cachedBytes() {
         if (cachedBytes != null) {
             return cachedBytes;
         }
@@ -68,7 +86,7 @@ public class DefaultEntry implements Entry {
 
     @Override
     public String toString() {
-        return "Entry{" + "ledgerId="
+        return "DefaultEntry{" + "ledgerId="
                 + ledgerId + ", entryId="
                 + entryId + ", lastConfirmed="
                 + lastConfirmed + ", payload="
