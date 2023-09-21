@@ -28,7 +28,7 @@ service BookieService {
 }
 
 message AddEntryRequest {
-    EntryProto entry = 1;
+  EntryProto entry = 1;
 }
 
 message AddEntryReply {

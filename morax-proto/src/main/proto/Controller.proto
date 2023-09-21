@@ -28,7 +28,7 @@ service Controller {
 }
 
 message RegisterServiceRequest {
-    ServiceInfoProto serviceInfo = 1;
+  ServiceInfoProto serviceInfo = 1;
 }
 
 message RegisterServiceReply {}
