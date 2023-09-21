@@ -28,7 +28,7 @@
         <relativePath>../morax-parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>morax-bookie</artifactId>
+    <artifactId>morax-controller</artifactId>
 
     <dependencies>
         <dependency>
@@ -42,12 +42,20 @@
             <artifactId>slf4j-simple</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
+            <groupId>org.apache.ratis</groupId>
+            <artifactId>ratis-thirdparty-misc</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
+            <groupId>org.apache.ratis</groupId>
+            <artifactId>ratis-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.ratis</groupId>
+            <artifactId>ratis-grpc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.ratis</groupId>
+            <artifactId>ratis-server-api</artifactId>
         </dependency>
     </dependencies>
 </project>
