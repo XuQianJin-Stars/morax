@@ -17,15 +17,14 @@
  * under the License.
  */
 
-package org.tisonkun.morax.bookie;
+package org.tisonkun.morax.bookie.utils;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.ChecksumType;
 import org.rocksdb.Options;
-import org.tisonkun.morax.bookie.storage.KVStorage;
-import org.tisonkun.morax.bookie.storage.KVStorageRocksDB;
+import org.tisonkun.morax.bookie.utils.RocksDBUtil;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -33,11 +32,11 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class KVStorageRocksDBTest {
+public class RocksDBUtilTest {
 
     @Test
     public void testInitiate(@TempDir Path tempDir) throws Exception {
-        try (KVStorageRocksDB rocksDB = new KVStorageRocksDB(tempDir)) {
+        try (RocksDBUtil rocksDB = new RocksDBUtil(tempDir)) {
             Options options = (Options) rocksDB.getOptions();
             assertEquals(64 * 1024 * 1024, options.writeBufferSize());
             assertEquals(4, options.maxWriteBufferNumber());
@@ -52,7 +51,7 @@ public class KVStorageRocksDBTest {
         byte[] key = "1".getBytes(StandardCharsets.UTF_8);
         byte[] value = "1".getBytes(StandardCharsets.UTF_8);
 
-        try (KVStorageRocksDB rocksDB = new KVStorageRocksDB(tempDir)) {
+        try (RocksDBUtil rocksDB = new RocksDBUtil(tempDir)) {
             rocksDB.put(key, value);
             assertEquals(
                     new String(value, StandardCharsets.UTF_8),
@@ -65,7 +64,7 @@ public class KVStorageRocksDBTest {
         byte[] key = "1".getBytes(StandardCharsets.UTF_8);
         byte[] value = "1".getBytes(StandardCharsets.UTF_8);
 
-        try (KVStorageRocksDB rocksDB = new KVStorageRocksDB(tempDir)) {
+        try (RocksDBUtil rocksDB = new RocksDBUtil(tempDir)) {
             rocksDB.put(key, value);
             assertEquals(1, rocksDB.count());
 
@@ -76,7 +75,7 @@ public class KVStorageRocksDBTest {
 
     @Test
     public void testCompact(@TempDir Path tempDir) throws Exception {
-        try (KVStorageRocksDB rocksDB = new KVStorageRocksDB(tempDir)) {
+        try (RocksDBUtil rocksDB = new RocksDBUtil(tempDir)) {
             for (int i = 0; i < 10000; i++) {
                 byte[] key = Integer.toString(i).getBytes(StandardCharsets.UTF_8);
                 rocksDB.put(key, key);
@@ -92,8 +91,8 @@ public class KVStorageRocksDBTest {
 
     @Test
     public void testBatchPut(@TempDir Path tempDir) throws Exception {
-        try (KVStorageRocksDB rocksDB = new KVStorageRocksDB(tempDir)) {
-            KVStorage.Batch batch = rocksDB.newBatch();
+        try (RocksDBUtil rocksDB = new RocksDBUtil(tempDir)) {
+            RocksDBUtil.Batch batch = rocksDB.newBatch();
             for (int i = 0; i < 10000; i++) {
                 byte[] key = Integer.toString(i).getBytes(StandardCharsets.UTF_8);
                 if (batch != null) {

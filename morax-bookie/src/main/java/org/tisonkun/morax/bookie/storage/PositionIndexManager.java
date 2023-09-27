@@ -14,6 +14,15 @@
  * limitations under the License.
  */
 
-package org.tisonkun.morax.proto.bookie;
+package org.tisonkun.morax.bookie.storage;
 
-public record EntryLocation(long logId, long position) {}
+import org.tisonkun.morax.proto.bookie.EntryLocation;
+
+import java.io.Closeable;
+import java.io.IOException;
+
+public abstract class PositionIndexManager implements Closeable {
+    public abstract void addPosition(long ledgerId, long entryId, int logId, long position) throws IOException;
+
+    public abstract EntryLocation findPosition(long ledgerId, long entryId) throws IOException;
+}

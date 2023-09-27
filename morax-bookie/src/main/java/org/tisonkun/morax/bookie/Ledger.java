@@ -17,18 +17,22 @@
 package org.tisonkun.morax.bookie;
 
 import static org.tisonkun.morax.proto.exception.ExceptionMessageBuilder.exMsg;
+
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import io.netty.buffer.ByteBuf;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
+
 import lombok.extern.slf4j.Slf4j;
 import org.tisonkun.morax.bookie.storage.EntryLogIds;
 import org.tisonkun.morax.bookie.storage.EntryLogReader;
 import org.tisonkun.morax.bookie.storage.EntryLogWriter;
-import org.tisonkun.morax.bookie.storage.EntryPosIndices;
+import org.tisonkun.morax.bookie.storage.MemoryPositionIndexManager;
+import org.tisonkun.morax.bookie.storage.PositionIndexManager;
 import org.tisonkun.morax.bookie.storage.StorageEvent;
 import org.tisonkun.morax.proto.bookie.Entry;
 import org.tisonkun.morax.proto.bookie.EntryLocation;
@@ -37,23 +41,27 @@ import org.tisonkun.morax.proto.exception.ExceptionUtils;
 @Slf4j
 public class Ledger {
     private static final String LOG_FILE_SUFFIX = ".log";
-
-    private final EntryPosIndices posIndices = new EntryPosIndices();
-    private final Cache<Integer, EntryLogReader> entryLogReaderCache = CacheBuilder.newBuilder()
+    private final Cache<Long, EntryLogReader> entryLogReaderCache = CacheBuilder.newBuilder()
             .concurrencyLevel(1) // important to avoid too aggressive eviction
             .build();
 
     private final long ledgerId;
     private final Path ledgerDir;
     private final EntryLogIds logIds;
+    private final PositionIndexManager indexManager;
     private final Executor writeExecutor;
 
     private EntryLogWriter entryLogWriter;
 
     public Ledger(long ledgerId, Path ledgerDir, EntryLogIds logIds, Executor writeExecutor) {
+        this(ledgerId, ledgerDir, logIds, new MemoryPositionIndexManager(), writeExecutor);
+    }
+
+    public Ledger(long ledgerId, Path ledgerDir, EntryLogIds logIds, PositionIndexManager indexManager, Executor writeExecutor) {
         this.ledgerId = ledgerId;
         this.ledgerDir = ledgerDir;
         this.logIds = logIds;
+        this.indexManager = indexManager;
         this.writeExecutor = writeExecutor;
     }
 
@@ -65,16 +73,16 @@ public class Ledger {
         }
         final int logId = entryLogWriter.logId();
         final long offset = entryLogWriter.writeDelimitedEntry(entry.toBytes());
-        posIndices.addPosition(ledgerId, entry.getEntryId(), logId, offset);
+        indexManager.addPosition(ledgerId, entry.getEntryId(), logId, offset);
     }
 
     public Entry readEntry(long entryId) throws IOException {
-        final EntryLocation location = posIndices.findPosition(ledgerId, entryId);
+        final EntryLocation location = indexManager.findPosition(ledgerId, entryId);
         if (location == null) {
             return null;
         }
 
-        final int logId = location.logId();
+        final long logId = location.logId();
         final EntryLogReader entryLogReader;
         try {
             entryLogReader = entryLogReaderCache.get(logId, () -> {
@@ -109,7 +117,7 @@ public class Ledger {
         entryLogWriter.flush();
     }
 
-    public static String logFileName(int logId) {
+    public static String logFileName(long logId) {
         return Long.toHexString(logId) + LOG_FILE_SUFFIX;
     }
 }

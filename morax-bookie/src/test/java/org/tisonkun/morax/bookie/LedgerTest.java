@@ -17,8 +17,10 @@
 package org.tisonkun.morax.bookie;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
 import io.netty.buffer.Unpooled;
 import io.netty.util.concurrent.DefaultThreadFactory;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -26,10 +28,12 @@ import java.util.Collections;
 import java.util.Random;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.tisonkun.morax.bookie.storage.EntryLogIds;
 import org.tisonkun.morax.bookie.storage.LedgerDirs;
+import org.tisonkun.morax.bookie.storage.RocksDBPositionIndexManager;
 import org.tisonkun.morax.proto.bookie.DefaultEntry;
 import org.tisonkun.morax.proto.bookie.Entry;
 
@@ -41,9 +45,40 @@ class LedgerTest {
         final long ledgerId = 1;
         final Executor writeExecutor = Executors.newSingleThreadExecutor(new DefaultThreadFactory("EntryLogWrite"));
         final Ledger ledger = new Ledger(ledgerId, tempDir, logIds, writeExecutor);
-        final Entry[] entries = new Entry[] {
-            new DefaultEntry(ledgerId, 1, 1, Unpooled.copiedBuffer("testAddAndGetEntry-1", StandardCharsets.UTF_8)),
-            new DefaultEntry(ledgerId, 2, 2, Unpooled.copiedBuffer("testAddAndGetEntry-2", StandardCharsets.UTF_8)),
+        final Entry[] entries = new Entry[]{
+                new DefaultEntry(ledgerId, 1, 1, Unpooled.copiedBuffer("testAddAndGetEntry-1", StandardCharsets.UTF_8)),
+                new DefaultEntry(ledgerId, 2, 2, Unpooled.copiedBuffer("testAddAndGetEntry-2", StandardCharsets.UTF_8)),
+        };
+
+        for (Entry entry : entries) {
+            ledger.addEntry(entry);
+        }
+        ledger.flush();
+
+        for (int i = 0; i < entries.length; i++) {
+            final int idx = entries.length - 1 - i;
+            final Entry actual = ledger.readEntry(entries[idx].getEntryId());
+            assertThat(actual).isEqualTo(entries[idx]);
+        }
+
+        for (int i = 0; i < 100; i++) {
+            final int idx = Math.floorMod(new Random().nextInt(), entries.length);
+            final Entry actual = ledger.readEntry(entries[idx].getEntryId());
+            assertThat(actual).isEqualTo(entries[idx]);
+        }
+    }
+
+    @Test
+    void testAddAndGetEntryWithRocksDB(@TempDir Path tempDir) throws IOException {
+        final LedgerDirs ledgerDirs = new LedgerDirs(Collections.singletonList(tempDir.toFile()));
+        final EntryLogIds logIds = new EntryLogIds(ledgerDirs);
+        final long ledgerId = 1;
+        final Executor writeExecutor = Executors.newSingleThreadExecutor(new DefaultThreadFactory("EntryLogWrite"));
+        RocksDBPositionIndexManager indexManager = new RocksDBPositionIndexManager(tempDir);
+        final Ledger ledger = new Ledger(ledgerId, tempDir, logIds, indexManager, writeExecutor);
+        final Entry[] entries = new Entry[]{
+                new DefaultEntry(ledgerId, 1, 1, Unpooled.copiedBuffer("testAddAndGetEntry-1", StandardCharsets.UTF_8)),
+                new DefaultEntry(ledgerId, 2, 2, Unpooled.copiedBuffer("testAddAndGetEntry-2", StandardCharsets.UTF_8)),
         };
 
         for (Entry entry : entries) {

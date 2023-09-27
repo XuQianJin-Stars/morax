@@ -19,7 +19,7 @@
  *
  */
 
-package org.tisonkun.morax.bookie.storage;
+package org.tisonkun.morax.bookie.utils;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -41,9 +41,8 @@ import org.rocksdb.RocksObject;
 import org.rocksdb.Slice;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -59,7 +58,7 @@ import static io.netty.util.internal.PlatformDependent.maxDirectMemory;
  * RocksDB based implementation of the KeyValueStorage.
  */
 @Slf4j
-public class KVStorageRocksDB implements KVStorage {
+public class RocksDBUtil implements Closeable {
 
     private Cache cache;
     private final RocksDB db;
@@ -79,7 +78,7 @@ public class KVStorageRocksDB implements KVStorage {
 
     private String dbPath;
 
-    public KVStorageRocksDB(Path basePath) throws IOException {
+    public RocksDBUtil(Path basePath) throws IOException {
         try {
             RocksDB.loadLibrary();
         } catch (Throwable t) {
@@ -189,7 +188,7 @@ public class KVStorageRocksDB implements KVStorage {
         }
     }
 
-    @Override
+
     public void close() {
         db.close();
         if (options != null) {
@@ -202,7 +201,7 @@ public class KVStorageRocksDB implements KVStorage {
         writeBatch.close();
     }
 
-    @Override
+
     public void put(byte[] key, byte[] value) throws IOException {
         try {
             db.put(optionDontSync, key, value);
@@ -211,7 +210,7 @@ public class KVStorageRocksDB implements KVStorage {
         }
     }
 
-    @Override
+
     public byte[] get(byte[] key) throws IOException {
         try {
             return db.get(key);
@@ -220,7 +219,7 @@ public class KVStorageRocksDB implements KVStorage {
         }
     }
 
-    @Override
+
     public int get(byte[] key, byte[] value) throws IOException {
         try {
             int res = db.get(key, value);
@@ -236,7 +235,7 @@ public class KVStorageRocksDB implements KVStorage {
         }
     }
 
-    @Override
+
     public void delete(byte[] key) throws IOException {
         try {
             db.delete(optionDontSync, key);
@@ -245,12 +244,12 @@ public class KVStorageRocksDB implements KVStorage {
         }
     }
 
-    @Override
+
     public String getDBPath() {
         return dbPath;
     }
 
-    @Override
+
     public void compact(byte[] firstKey, byte[] lastKey) throws IOException {
         try {
             db.compactRange(firstKey, lastKey);
@@ -259,7 +258,7 @@ public class KVStorageRocksDB implements KVStorage {
         }
     }
 
-    @Override
+
     public void compact() throws IOException {
         try {
             final long start = System.currentTimeMillis();
@@ -289,7 +288,7 @@ public class KVStorageRocksDB implements KVStorage {
         return rocksDBFileSize;
     }
 
-    @Override
+
     public void sync() throws IOException {
         try {
             db.write(optionSync, writeBatch);
@@ -298,18 +297,18 @@ public class KVStorageRocksDB implements KVStorage {
         }
     }
 
-    @Override
+
     public CloseableIterator<byte[]> keys() {
         final RocksIterator iterator = db.newIterator(optionCache);
         iterator.seekToFirst();
 
         return new CloseableIterator<byte[]>() {
-            @Override
+
             public boolean hasNext() {
                 return iterator.isValid();
             }
 
-            @Override
+
             public byte[] next() {
                 checkState(iterator.isValid());
                 byte[] key = iterator.key();
@@ -317,14 +316,14 @@ public class KVStorageRocksDB implements KVStorage {
                 return key;
             }
 
-            @Override
+
             public void close() {
                 iterator.close();
             }
         };
     }
 
-    @Override
+
     public CloseableIterator<byte[]> keys(byte[] firstKey, byte[] lastKey) {
         final Slice upperBound = new Slice(lastKey);
         final ReadOptions option = new ReadOptions(optionCache).setIterateUpperBound(upperBound);
@@ -332,12 +331,12 @@ public class KVStorageRocksDB implements KVStorage {
         iterator.seek(firstKey);
 
         return new CloseableIterator<>() {
-            @Override
+
             public boolean hasNext() {
                 return iterator.isValid();
             }
 
-            @Override
+
             public byte[] next() {
                 checkState(iterator.isValid());
                 byte[] key = iterator.key();
@@ -345,7 +344,7 @@ public class KVStorageRocksDB implements KVStorage {
                 return key;
             }
 
-            @Override
+
             public void close() {
                 iterator.close();
                 option.close();
@@ -354,19 +353,19 @@ public class KVStorageRocksDB implements KVStorage {
         };
     }
 
-    @Override
+
     public CloseableIterator<Entry<byte[], byte[]>> iterator() {
         final RocksIterator iterator = db.newIterator(optionDontCache);
         iterator.seekToFirst();
         final EntryWrapper entryWrapper = new EntryWrapper();
 
         return new CloseableIterator<>() {
-            @Override
+
             public boolean hasNext() {
                 return iterator.isValid();
             }
 
-            @Override
+
             public Entry<byte[], byte[]> next() {
                 checkState(iterator.isValid());
                 entryWrapper.key = iterator.key();
@@ -375,14 +374,14 @@ public class KVStorageRocksDB implements KVStorage {
                 return entryWrapper;
             }
 
-            @Override
+
             public void close() {
                 iterator.close();
             }
         };
     }
 
-    @Override
+
     public long count() throws IOException {
         try {
             return db.getLongProperty("rocksdb.estimate-num-keys");
@@ -391,7 +390,7 @@ public class KVStorageRocksDB implements KVStorage {
         }
     }
 
-    @Override
+
     public Batch newBatch() {
         return new RocksDBBatch(writeBatchMaxSize);
     }
@@ -405,13 +404,13 @@ public class KVStorageRocksDB implements KVStorage {
             this.batchSize = batchSize;
         }
 
-        @Override
+
         public void close() {
             writeBatch.close();
             batchCount = 0;
         }
 
-        @Override
+
         public void put(byte[] key, byte[] value) throws IOException {
             try {
                 writeBatch.put(key, value);
@@ -421,7 +420,7 @@ public class KVStorageRocksDB implements KVStorage {
             }
         }
 
-        @Override
+
         public void remove(byte[] key) throws IOException {
             try {
                 writeBatch.delete(key);
@@ -431,13 +430,13 @@ public class KVStorageRocksDB implements KVStorage {
             }
         }
 
-        @Override
+
         public void clear() {
             writeBatch.clear();
             batchCount = 0;
         }
 
-        @Override
+
         public void deleteRange(byte[] beginKey, byte[] endKey) throws IOException {
             try {
                 writeBatch.deleteRange(beginKey, endKey);
@@ -454,12 +453,12 @@ public class KVStorageRocksDB implements KVStorage {
             }
         }
 
-        @Override
+
         public int batchCount() {
             return batchCount;
         }
 
-        @Override
+
         public void flush() throws IOException {
             try {
                 db.write(optionSync, writeBatch);
@@ -485,19 +484,49 @@ public class KVStorageRocksDB implements KVStorage {
             this.value = value;
         }
 
-        @Override
+
         public byte[] setValue(byte[] value) {
             throw new UnsupportedOperationException();
         }
 
-        @Override
+
         public byte[] getValue() {
             return value;
         }
 
-        @Override
+
         public byte[] getKey() {
             return key;
+        }
+    }
+
+    /**
+     * Iterator interface.
+     *
+     * @param <T>
+     */
+    interface CloseableIterator<T> extends Closeable {
+        boolean hasNext() throws IOException;
+
+        T next() throws IOException;
+    }
+
+    /**
+     * Interface for a batch to be written in the storage.
+     */
+    public interface Batch extends Closeable {
+        void put(byte[] key, byte[] value) throws IOException;
+
+        void remove(byte[] key) throws IOException;
+
+        void deleteRange(byte[] beginKey, byte[] endKey) throws IOException;
+
+        void clear();
+
+        void flush() throws IOException;
+
+        default int batchCount() {
+            return -1;
         }
     }
 }
