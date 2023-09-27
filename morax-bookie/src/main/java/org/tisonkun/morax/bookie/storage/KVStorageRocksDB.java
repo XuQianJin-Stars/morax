@@ -60,11 +60,10 @@ import static io.netty.util.internal.PlatformDependent.maxDirectMemory;
  */
 @Slf4j
 public class KVStorageRocksDB implements KVStorage {
-    static KVStorageFactory factory = KVStorageRocksDB::new;
 
     private Cache cache;
-
     private final RocksDB db;
+
     @Getter
     private RocksObject options;
     @Getter
@@ -500,9 +499,5 @@ public class KVStorageRocksDB implements KVStorage {
         public byte[] getKey() {
             return key;
         }
-    }
-
-    public RocksDB db() {
-        return db;
     }
 }
