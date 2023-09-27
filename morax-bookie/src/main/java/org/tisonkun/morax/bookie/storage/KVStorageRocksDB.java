@@ -22,6 +22,7 @@
 package org.tisonkun.morax.bookie.storage;
 
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
 import org.rocksdb.Cache;
@@ -57,10 +58,8 @@ import static io.netty.util.internal.PlatformDependent.maxDirectMemory;
 /**
  * RocksDB based implementation of the KeyValueStorage.
  */
+@Slf4j
 public class KVStorageRocksDB implements KVStorage {
-
-    private static final Logger log = LoggerFactory.getLogger(KVStorageRocksDB.class);
-
     static KVStorageFactory factory = KVStorageRocksDB::new;
 
     private Cache cache;
