@@ -137,8 +137,6 @@
                 <artifactId>ratis-server-api</artifactId>
                 <version>${ratis.version}</version>
             </dependency>
-
-            <!-- rocksdb dependencies -->
             <dependency>
                 <groupId>org.rocksdb</groupId>
                 <artifactId>rocksdbjni</artifactId>

@@ -16,4 +16,21 @@
 
 package org.tisonkun.morax.proto.bookie;
 
-public record EntryLocation(long logId, long position) {}
+import java.nio.ByteBuffer;
+
+public record EntryLocation(int logId, long position) {
+    public byte[] toBytes() {
+        final byte[] bytes = new byte[Integer.BYTES + Long.BYTES];
+        final ByteBuffer buffer = ByteBuffer.wrap(bytes);
+        buffer.putInt(logId);
+        buffer.putLong(position);
+        return bytes;
+    }
+
+    public static EntryLocation fromBytes(byte[] bytes) {
+        final ByteBuffer buffer = ByteBuffer.wrap(bytes);
+        final int logId = buffer.getInt();
+        final long position = buffer.getLong();
+        return new EntryLocation(logId, position);
+    }
+}

@@ -30,14 +30,14 @@ import java.util.Set;
 import lombok.Getter;
 
 public class EntryLogReader implements AutoCloseable {
-    private final long logId;
+    private final int logId;
     private final Path logFile;
     private final FileChannel channel;
 
     @Getter
     private volatile boolean closed;
 
-    public EntryLogReader(long logId, Path logFile) throws IOException {
+    public EntryLogReader(int logId, Path logFile) throws IOException {
         this.logId = logId;
         this.logFile = logFile;
 
@@ -48,7 +48,7 @@ public class EntryLogReader implements AutoCloseable {
     /**
      * Return the ID of the log being read from.
      */
-    public long logId() {
+    public int logId() {
         return logId;
     }
 
