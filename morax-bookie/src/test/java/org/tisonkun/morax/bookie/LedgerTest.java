@@ -43,9 +43,9 @@ class LedgerTest {
         final long ledgerId = 1;
         final Executor writeExecutor = Executors.newSingleThreadExecutor(new DefaultThreadFactory("EntryLogWrite"));
         final Ledger ledger = new Ledger(ledgerId, tempDir, logIds, writeExecutor);
-        final Entry[] entries = new Entry[]{
-                new Entry(ledgerId, 1, 1, Unpooled.copiedBuffer("testAddAndGetEntry-1", StandardCharsets.UTF_8)),
-                new Entry(ledgerId, 2, 2, Unpooled.copiedBuffer("testAddAndGetEntry-2", StandardCharsets.UTF_8)),
+        final Entry[] entries = new Entry[] {
+            new Entry(ledgerId, 1, 1, Unpooled.copiedBuffer("testAddAndGetEntry-1", StandardCharsets.UTF_8)),
+            new Entry(ledgerId, 2, 2, Unpooled.copiedBuffer("testAddAndGetEntry-2", StandardCharsets.UTF_8)),
         };
 
         for (Entry entry : entries) {
